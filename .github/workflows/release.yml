@@ -4,10 +4,23 @@ on:
   push:
     tags:
       - "v*.*.*"
+  repository_dispatch:
+    types: [frontend-release]
+  workflow_dispatch:
+    inputs:
+      frontend_tag:
+        description: Frontend version tag (e.g., v1.2.3)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: write
 
 jobs:
   verify:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
@@ -41,8 +54,82 @@ jobs:
           fi
           echo "All versions match tag v$TAG"
 
+  build-frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_tag: ${{ steps.resolve.outputs.frontend_tag }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Resolve frontend tag
+        id: resolve
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            FRONTEND_TAG="${GITHUB_REF_NAME}"
+          elif [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            FRONTEND_TAG="${{ github.event.client_payload.frontend_tag }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FRONTEND_TAG="${{ github.event.inputs.frontend_tag }}"
+          else
+            echo "::error::Unsupported event type: ${{ github.event_name }}"
+            exit 1
+          fi
+
+          if [ -z "$FRONTEND_TAG" ]; then
+            echo "::error::frontend_tag was not provided"
+            exit 1
+          fi
+
+          VERSION="${FRONTEND_TAG#v}"
+          echo "frontend_tag=$FRONTEND_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Using frontend tag $FRONTEND_TAG"
+
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          repository: librestock/frontend
+          ref: ${{ steps.resolve.outputs.frontend_tag }}
+          path: frontend
+
+      - name: Checkout packages
+        uses: actions/checkout@v4
+        with:
+          repository: librestock/packages
+          path: packages
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build @librestock/types
+        working-directory: packages/types
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Build frontend SPA
+        working-directory: frontend
+        run: |
+          pnpm install --frozen-lockfile
+          LIBRESTOCK_SPA=true VITE_API_BASE_URL=__LIBRESTOCK_RUNTIME_URL__ pnpm build
+
+      - name: Upload frontend SPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-spa-dist
+          path: frontend/.output/public
+          if-no-files-found: error
+
   release:
-    needs: verify
+    needs:
+      - verify
+      - build-frontend
+    if: ${{ always() && needs.build-frontend.result == 'success' && (github.event_name != 'push' || needs.verify.result == 'success') }}
     strategy:
       fail-fast: false
       matrix:
@@ -58,6 +145,41 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download frontend SPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-spa-dist
+          path: frontend-dist
+
+      - name: Install jq on Windows
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: choco install jq -y
+
+      - name: Point Tauri to downloaded SPA frontend
+        shell: bash
+        run: |
+          jq '.build.frontendDist = "../frontend-dist"' src-tauri/tauri.conf.json > src-tauri/tauri.conf.tmp.json
+          mv src-tauri/tauri.conf.tmp.json src-tauri/tauri.conf.json
+
+      - name: Sync versions from frontend tag
+        if: github.event_name != 'push'
+        shell: bash
+        env:
+          VERSION: ${{ needs.build-frontend.outputs.version }}
+        run: |
+          jq --arg version "$VERSION" '.version = $version' src-tauri/tauri.conf.json > src-tauri/tauri.conf.tmp.json
+          mv src-tauri/tauri.conf.tmp.json src-tauri/tauri.conf.json
+
+          jq --arg version "$VERSION" '.version = $version' package.json > package.tmp.json
+          mv package.tmp.json package.json
+
+          awk -v version="$VERSION" '
+            /^version = "/ { print "version = \"" version "\""; next }
+            { print }
+          ' src-tauri/Cargo.toml > src-tauri/Cargo.toml.tmp
+          mv src-tauri/Cargo.toml.tmp src-tauri/Cargo.toml
 
       - uses: pnpm/action-setup@v4
         with:
