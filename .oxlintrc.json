@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import"],
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "rules": {
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    "no-debugger": "error",
+    "no-throw-literal": "error",
+    "no-useless-rename": "error",
+    "no-var": "error",
+    "prefer-const": "error"
+  },
+  "overrides": [
+    {
+      "files": ["src-ui/**/*.test.js"],
+      "globals": {
+        "describe": "readonly",
+        "expect": "readonly",
+        "it": "readonly"
+      }
+    }
+  ],
+  "ignorePatterns": ["**/node_modules/**", "src-tauri/target/**", "dist/**"]
+}

@@ -5,5 +5,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src-ui/**/*.js", "eslint.config.mjs"]
+  "include": ["src-ui/**/*.js"]
 }
