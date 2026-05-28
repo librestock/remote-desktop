@@ -1593,7 +1593,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "librestock-remote"
+name = "stocket-remote"
 version = "0.1.0"
 dependencies = [
  "serde",

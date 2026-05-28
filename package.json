@@ -1,5 +1,5 @@
 {
-  "name": "@librestock/remote-desktop",
+  "name": "@stocket/remote-desktop",
   "version": "0.1.0",
   "private": true,
   "type": "module",

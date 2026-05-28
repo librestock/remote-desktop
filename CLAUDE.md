@@ -1,6 +1,6 @@
-# LibreStock Remote Desktop - Agent Context
+# Stocket Remote Desktop - Agent Context
 
-> Tauri v2 desktop app for LibreStock inventory management.
+> Tauri v2 desktop app for Stocket inventory management.
 
 ## Tech Stack
 

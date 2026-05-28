@@ -88,14 +88,14 @@ jobs:
       - name: Checkout frontend
         uses: actions/checkout@v4
         with:
-          repository: librestock/frontend
+          repository: stocket/frontend
           ref: ${{ steps.resolve.outputs.frontend_tag }}
           path: frontend
 
       - name: Checkout packages
         uses: actions/checkout@v4
         with:
-          repository: librestock/packages
+          repository: stocket/packages
           path: packages
 
       - uses: pnpm/action-setup@v4
@@ -106,7 +106,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Build @librestock/types
+      - name: Build @stocket/types
         working-directory: packages/types
         run: |
           pnpm install --frozen-lockfile
@@ -116,7 +116,7 @@ jobs:
         working-directory: frontend
         run: |
           pnpm install --frozen-lockfile
-          LIBRESTOCK_SPA=true VITE_API_BASE_URL=__LIBRESTOCK_RUNTIME_URL__ pnpm build
+          STOCKET_SPA=true VITE_API_BASE_URL=__STOCKET_RUNTIME_URL__ pnpm build
 
       - name: Upload frontend SPA artifact
         uses: actions/upload-artifact@v4

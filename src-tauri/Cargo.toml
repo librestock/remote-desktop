@@ -1,8 +1,8 @@
 [package]
-name = "librestock-remote"
+name = "stocket-remote"
 version = "0.1.0"
-description = "LibreStock Remote desktop client"
-authors = ["LibreStock Inventory"]
+description = "Stocket Remote desktop client"
+authors = ["Stocket Inventory"]
 edition = "2021"
 
 [build-dependencies]

@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          repository: librestock/packages
+          repository: stocket/packages
           path: packages
 
       - name: Create workspace root
@@ -24,7 +24,7 @@ jobs:
           cat > package.json << 'EOF'
           {
             "private": true,
-            "name": "librestock-workspace"
+            "name": "stocket-workspace"
           }
           EOF
           cat > pnpm-workspace.yaml << 'EOF'

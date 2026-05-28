@@ -3,5 +3,5 @@
 fn main() {
   tauri::Builder::default()
     .run(tauri::generate_context!())
-    .expect("error while running LibreStock Remote");
+    .expect("error while running Stocket Remote");
 }
